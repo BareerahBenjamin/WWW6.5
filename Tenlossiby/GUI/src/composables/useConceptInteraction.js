@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import { conceptDefinitions, day11ConceptDefinitions } from '@/data/concepts'
+import { conceptDefinitions, day11ConceptDefinitions, day12ConceptDefinitions, day13ConceptDefinitions, day14ConceptDefinitions, day15ConceptDefinitions, day16ConceptDefinitions } from '@/data/concepts'
 
 /**
  * 概念徽章点击交互逻辑
@@ -9,10 +9,25 @@ export function useConceptInteraction(updateCurrentConcept, currentDay = null) {
   // 当前选中的概念 key
   const selectedConcept = ref(null)
 
-  // 获取概念定义（支持 Day 11 和其他天数）
+  // 获取概念定义（支持 Day 11、Day 12、Day 13、Day 14、Day 15 和其他天数）
   const getConceptDef = (key) => {
     if (currentDay === 11) {
       return day11ConceptDefinitions[key]
+    }
+    if (currentDay === 12) {
+      return day12ConceptDefinitions[key]
+    }
+    if (currentDay === 13) {
+      return day13ConceptDefinitions[key]
+    }
+    if (currentDay === 14) {
+      return day14ConceptDefinitions[key]
+    }
+    if (currentDay === 15) {
+      return day15ConceptDefinitions[key]
+    }
+    if (currentDay === 16) {
+      return day16ConceptDefinitions[key]
     }
     return conceptDefinitions[key]
   }

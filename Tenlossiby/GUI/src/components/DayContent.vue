@@ -26,7 +26,12 @@ const dayComponents = {
   9: defineAsyncComponent(() => import('./days/Day9/SmartCalculator.vue')),
   10: defineAsyncComponent(() => import('./days/Day10/ActivityTracker.vue')),
   11: defineAsyncComponent(() => import('./days/Day11/MasterkeyContract.vue')),
-  12: defineAsyncComponent(() => import('./days/Day12/ERC20Token.vue'))
+  12: defineAsyncComponent(() => import('./days/Day12/ERC20Token.vue')),
+  13: defineAsyncComponent(() => import('./days/Day13/MyToken.vue')),
+  14: defineAsyncComponent(() => import('./days/Day14/SafeDeposit.vue')),
+  15: defineAsyncComponent(() => import('./days/Day15/GasEfficientVoting.vue')),
+  16: defineAsyncComponent(() => import('./days/Day16/PluginStore.vue')),
+  17: defineAsyncComponent(() => import('./days/Day17/UpgradeHub.vue'))
 }
 
 const props = defineProps({

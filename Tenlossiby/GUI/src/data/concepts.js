@@ -29,7 +29,41 @@ export const gasEstimates = {
     tipInEth: 40000,
     tipInCurrency: 50000,
     withdrawTips: 35000,
-    transferOwnership8: 35000
+    transferOwnership8: 35000,
+    // Day 13 - MyToken
+    transfer13: 35000,
+    approve13: 30000,
+    transferFrom13: 40000,
+    getBalance13: 0,
+    getAllowance13: 0,
+    // Day 14 - SafeDeposit
+    createBasicBox: 80000,
+    createPremiumBox: 100000,
+    createTimeLockedBox: 120000,
+    storeSecret: 35000,
+    getSecret: 0,
+    transferOwnership14: 40000,
+    setMetadata: 30000,
+    getMetadata: 0,
+    getUnlockTime: 0,
+    getRemainingLockTime: 0,
+    completeOwnershipTransfer: 45000,
+    // Day 15 - GasEfficientVoting
+    createProposal15: 60000,
+    vote15: 40000,
+    executeProposal15: 35000,
+    // Day 16 - PluginStore
+    setProfile16: 35000,
+    registerPlugin16: 25000,
+    runPlugin16: 45000,
+    runPluginView16: 0,
+    // Day 17 - UpgradeHub
+    createPlan17: 45000,
+    upgradeTo17: 35000,
+    subscribe17: 50000,
+    pauseSubscription17: 30000,
+    resumeSubscription17: 30000,
+    isSubscribed17: 0  // 查询订阅状态（view函数，不消耗Gas）
 };
 
 export const ethPricePerGwei = 0.00000004;
@@ -669,6 +703,77 @@ function withdraw() public onlyOwner {
     }
 };
 
+// ========== Day 13 概念定义 ==========
+export const day13ConceptDefinitions = {
+    constructor_mint: {
+        name: "构造函数铸造",
+        icon: "🪙",
+        unlockAt: 1,
+        message: "你了解了构造函数铸造机制！合约部署时，构造函数会自动执行，从 address(0) 铸造代币给部署者。",
+        code: `constructor(uint256 _initialSupply){
+    // 计算实际总供应量
+    totalSupply = _initialSupply * (10 ** decimals);
+    // 将所有代币分配给部署者
+    balanceOf[msg.sender] = totalSupply;
+    // 触发转账事件，from地址为0表示新铸造
+    emit Transfer(address(0), msg.sender, _initialSupply);
+}`
+    },
+    zero_address_mint: {
+        name: "零地址铸造",
+        icon: "📍",
+        unlockAt: 1,
+        message: "你了解了零地址的特殊含义！在 ERC20 中，Transfer(address(0), to, amount) 表示铸造新代币，Transfer(from, address(0), amount) 表示销毁代币。",
+        code: `// 从零地址转出 = 铸造（创建新代币）
+emit Transfer(address(0), msg.sender, amount);
+
+// 转入零地址 = 销毁（永久移除代币）
+emit Transfer(msg.sender, address(0), amount);`
+    },
+    internal_function: {
+        name: "internal 函数",
+        icon: "🔒",
+        unlockAt: 2,
+        message: "你了解了 internal 函数！它只能在合约内部调用，外部无法直接访问。这是代码封装的重要手段，_transfer 就是典型的内部函数。",
+        code: `// internal 函数：只能在合约内部调用
+function _transfer(address _from, address _to, uint256 _value) 
+    internal virtual {
+    // 实际执行转账逻辑
+    balanceOf[_from] -= _value;
+    balanceOf[_to] += _value;
+    emit Transfer(_from, _to, _value);
+}
+
+// public 函数调用 internal 函数
+function transfer(address _to, uint256 _value) public returns (bool) {
+    _transfer(msg.sender, _to, _value);  // 内部调用
+    return true;
+}`
+    },
+    virtual_function: {
+        name: "virtual 函数",
+        icon: "🧬",
+        unlockAt: 3,
+        message: "你了解了 virtual 关键字！它允许子合约重写（override）父合约的函数。这是实现 ERC20 扩展（如 ERC20Pausable、ERC20Votes）的基础机制。",
+        code: `// 父合约：标记函数可被重写
+contract MyToken {
+    function _transfer(address _from, address _to, uint256 _value) 
+        internal virtual {  // ← virtual 允许重写
+        // 基础转账逻辑
+    }
+}
+
+// 子合约：重写父合约函数
+contract MyTokenWithFee is MyToken {
+    function _transfer(address _from, address _to, uint256 _value) 
+        internal override {  // ← override 重写
+        // 自定义逻辑（如收取手续费）
+        super._transfer(_from, _to, _value);  // 调用父函数
+    }
+}`
+    }
+};
+
 export const getHint = (conceptKey) => {
     const hints = {
         function: "🎉 很棒！现在你了解了函数的作用。继续点击，看看还能发现什么？",
@@ -737,7 +842,21 @@ export const getHint = (conceptKey) => {
         event_logging: "📋 很好！你触发了事件日志！👉 尝试转移所有权来解锁更多概念！",
         indexed_parameter: "🏷️ 不错！你了解了索引参数！",
         transfer_ownership: "🔑 很好！你了解了所有权转移！👉 尝试以用户身份提取来学习修饰符！",
-        onlyOwner_modifier: "🛡️ 太棒了！你了解了 onlyOwner 修饰符！👉 查看完整代码来学习更多！"
+        onlyOwner_modifier: "🛡️ 太棒了！你了解了 onlyOwner 修饰符！👉 查看完整代码来学习更多！",
+        // ========== Day 13 提示 ==========
+        constructor_mint: "🪙 欢迎来到 Day 13！你看到的是构造函数首次铸造的代币。注意事件日志中的 Transfer(address(0), ...)",
+        zero_address_mint: "📍 address(0) (零地址) 表示新铸造的代币。在 ERC20 中，从零地址转出 = Mint，转入零地址 = Burn",
+        internal_function: "🔒 你刚刚调用了 transfer()，它内部调用了 _transfer()。internal 函数只能在合约内部调用，外部无法直接访问",
+        virtual_function: "🧬 注意到 _transfer 后面的 virtual 关键字了吗？它允许子合约重写此函数，这是 ERC20 扩展的基础！",
+        // ========== Day 16 提示 ==========
+        struct_definition: "🏗️ 你了解了结构体定义！PlayerProfile 将 name 和 avatar 组合在一起。👉 设置玩家资料来解锁映射存储！",
+        mapping_storage: "🗺️ 你的资料已保存到 mapping！通过键值对高效存储。👉 注册 weapon 插件来学习插件系统！",
+        plugin_registration: "🔌 插件注册成功！地址已存入 plugins[key]。👉 点击「调用」执行插件函数！",
+        low_level_call: "⚡ 低级别调用成功！使用了 EVM 的 call 指令。👉 查看 ABI 编码可视化！",
+        abi_encoding: "🔢 ABI 编码完成！函数选择器是 keccak256 哈希的前4字节。👉 切换 staticcall 模式查询数据！",
+        staticcall: "👁️ 静态调用成功！不消耗 Gas 的只读操作。👉 尝试切换到 achievement 插件！",
+        dynamic_delegation: "🔄 动态委托系统运行中！一个核心管理多个插件。👉 在不同插件间切换体验互操作！",
+        contract_interop: "🌐 合约互操作掌握！多个合约无缝协作。🎉 你已掌握 Day 16 所有核心概念！"
     };
     return hints[conceptKey] || "📖 点击其他概念标签查看更多详细解释。";
 };
@@ -935,6 +1054,17 @@ export const getDay12Hint = (conceptKey) => {
     return hints[conceptKey] || "📖 点击其他概念标签查看更多详细解释。";
 };
 
+// ========== Day 13 概念解释提示 ==========
+export const getDay13ExplanationHint = (conceptKey) => {
+    const hints = {
+        constructor_mint: "📖 构造函数铸造是 ERC20 代币的常见模式。合约部署时，构造函数自动执行，创建所有代币并分配给部署者。Transfer(address(0), ...) 事件表示这是铸造操作。",
+        zero_address_mint: "📖 零地址 address(0) 在 ERC20 中有特殊含义。Transfer 事件中 from=address(0) 表示铸造（创建新代币），to=address(0) 表示销毁（移除代币）。这是行业标准约定。",
+        internal_function: "📖 internal 是 Solidity 的可见性修饰符之一。与 public/external 不同，internal 函数只能在当前合约内部调用，不能从外部访问。这是代码封装的重要手段，_transfer 就是典型的内部辅助函数。",
+        virtual_function: "📖 virtual 关键字标记函数可以被继承合约重写（override）。这是实现可扩展 ERC20（如带手续费的代币、可暂停代币）的基础。子合约使用 override 关键字重写，并用 super 调用父合约函数。"
+    };
+    return hints[conceptKey] || "📖 点击其他概念标签查看更多详细解释。";
+};
+
 // ========== Day 12 概念解释提示 ==========
 export const getDay12ExplanationHint = (conceptKey) => {
     const hints = {
@@ -945,6 +1075,664 @@ export const getDay12ExplanationHint = (conceptKey) => {
         approve: "📖 approve 函数实现了授权机制，允许代币持有者授权他人使用自己的代币。这在 DeFi 应用中非常重要，比如授权 DEX 使用你的代币进行交易。",
         allowance: "📖 allowance 函数用于查询授权额度，返回被授权者还可以使用持有者的代币数量。在执行 transferFrom 之前，通常需要先检查 allowance 是否充足。",
         transferFrom: "📖 transferFrom 函数实现了代转账功能，允许被授权者代替持有者转账。这是 ERC20 的高级功能，常用于需要第三方代为执行转账的场景，如自动扣款、代理交易等。"
+    };
+    return hints[conceptKey] || "📖 点击其他概念标签查看更多详细解释。";
+};
+
+// ========== Day 14 概念定义 ==========
+export const day14ConceptDefinitions = {
+    interface_definition: {
+        name: "接口定义",
+        icon: "🔌",
+        unlockAt: 1,
+        message: "你了解了接口！接口定义了合约必须实现的功能规范，是实现多态和解耦的基础。",
+        code: `// IDepositBox.sol - 定义存款盒的标准接口
+interface IDepositBox {
+    function storeSecret(string calldata secret) external;
+    function getSecret() external view returns (string memory);
+    function transferOwnership(address newOwner) external;
+    function getBoxType() external view returns (string memory);
+    function getOwner() external view returns (address);
+}`
+    },
+    abstract_contract: {
+        name: "抽象合约",
+        icon: "🎭",
+        unlockAt: 2,
+        message: "你了解了抽象合约！抽象合约可以包含未实现的函数（纯虚函数），不能被直接部署，只能被继承。",
+        code: `// BaseDepositBox.sol - 抽象基础合约
+abstract contract BaseDepositBox is IDepositBox {
+    string internal secret;
+    address internal owner;
+    
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only owner");
+        _;
+    }
+    
+    // 纯虚函数：必须由子合约实现
+    function getBoxType() public view virtual returns (string memory);
+}`
+    },
+    inheritance: {
+        name: "合约继承",
+        icon: "🧬",
+        unlockAt: 3,
+        message: "你体验了合约继承！BasicDepositBox 继承了 BaseDepositBox 的所有功能，无需额外代码。",
+        code: `// BasicDepositBox.sol - 简单继承
+contract BasicDepositBox is BaseDepositBox {
+    // 只继承父合约，不添加新功能
+    
+    function getBoxType() public view override returns (string memory) {
+        return "Basic";
+    }
+}`
+    },
+    override_keyword: {
+        name: "重写关键字",
+        icon: "📝",
+        unlockAt: 4,
+        message: "你使用了 override 关键字！子合约使用 override 重写父合约的虚函数，实现自定义行为。",
+        code: `// 父合约中的虚函数
+function getBoxType() public view virtual returns (string memory);
+
+// 子合约重写
+function getBoxType() public view override returns (string memory) {
+    return "Premium";  // 自定义实现
+}`
+    },
+    virtual_function: {
+        name: "虚函数",
+        icon: "🔮",
+        unlockAt: 5,
+        message: "你了解了 virtual 关键字！它标记函数可以被继承合约重写，是实现多态的基础。",
+        code: `// 父合约：标记函数可被重写
+function storeSecret(string calldata _secret) 
+    public virtual onlyOwner {
+    secret = _secret;
+}
+
+// 子合约：重写并扩展功能
+function storeSecret(string calldata _secret) 
+    public override onlyOwner {
+    // 自定义逻辑...
+    secret = _secret;
+}`
+    },
+    super_keyword: {
+        name: "父类调用",
+        icon: "⬆️",
+        unlockAt: 6,
+        message: "你使用了 super 关键字！super 调用父合约的函数，在重写时复用父类的逻辑。",
+        code: `// TimeLocked 重写 getSecret
+function getSecret() public view override onlyOwner timeUnlocked 
+    returns (string memory) {
+    // 可以在这里添加自定义逻辑
+    return super.getSecret();  // 调用父合约的实现
+}`
+    },
+    modifier_combination: {
+        name: "修饰器组合",
+        icon: "🔗",
+        unlockAt: 7,
+        message: "你体验了修饰器组合！多个修饰器可以组合使用，函数必须同时满足所有条件才能执行。",
+        code: `// 修饰器组合：同时检查所有者和时间
+function getSecret() public view 
+    onlyOwner           // 检查1：必须是所有者
+    timeUnlocked        // 检查2：必须已解锁
+    returns (string memory) {
+    return secret;
+}`
+    },
+    factory_pattern: {
+        name: "工厂模式",
+        icon: "🏭",
+        unlockAt: 8,
+        message: "你体验了工厂模式！VaultManager 负责创建和管理所有存款盒，是创建型设计模式的经典应用。",
+        code: `// VaultManager.sol - 工厂合约
+contract VaultManager {
+    function createBasicBox() public returns (address) {
+        BasicDepositBox newBox = new BasicDepositBox();
+        allBoxes.push(address(newBox));
+        userBoxes[msg.sender].push(address(newBox));
+        return address(newBox);
+    }
+}`
+    },
+    metadata_storage: {
+        name: "元数据存储",
+        icon: "🏷️",
+        unlockAt: 9,
+        message: "你使用了元数据功能！Premium 版本可以存储额外信息，展示了继承扩展的实际应用。",
+        code: `// PremiumDepositBox - 扩展功能
+contract PremiumDepositBox is BaseDepositBox {
+    string private metadata;  // 额外状态变量
+    
+    function setMetadata(string calldata _metadata) public onlyOwner {
+        metadata = _metadata;
+    }
+    
+    function getMetadata() public view onlyOwner returns (string memory) {
+        return metadata;
+    }
+}`
+    },
+    time_lock: {
+        name: "时间锁定",
+        icon: "⏰",
+        unlockAt: 10,
+        message: "你创建了时间锁定存款盒！解锁前无法取出秘密，展示了修饰器在权限控制中的强大作用。",
+        code: `// TimeLockedDepositBox - 时间锁
+contract TimeLockedDepositBox is BaseDepositBox {
+    uint256 private unlockTime;
+    
+    modifier timeUnlocked() {
+        require(block.timestamp >= unlockTime, "Still locked");
+        _;
+    }
+    
+    function getSecret() public view 
+        override onlyOwner timeUnlocked returns (string memory) {
+        return secret;
+    }
+}`
+    }
+};
+
+// ========== Day 15 概念定义 ==========
+export const day15ConceptDefinitions = {
+    compact_datatype: {
+        name: "紧凑数据类型",
+        icon: "📦",
+        unlockAt: 1,
+        message: "你了解了紧凑数据类型！uint8、uint32 等小整数类型相比 uint256 可以节省大量存储空间和 Gas。",
+        code: `// 使用紧凑数据类型优化存储
+uint8 public proposalCount;       // 只占 1 字节 (0-255)
+uint32 public voteCount;          // 只占 4 字节 (0-42亿)
+// 相比 uint256 的 32 字节，节省了大量存储！`
+    },
+    uint8_uint32: {
+        name: "小整数类型",
+        icon: "🔢",
+        unlockAt: 2,
+        message: "你了解了 uint8 和 uint32！它们分别只需 1 字节和 4 字节，远小于 uint256 的 32 字节。",
+        code: `// 紧凑整数类型对比
+uint8  a;  // 1 字节:  0 - 255
+uint16 b;  // 2 字节:  0 - 65535
+uint32 c;  // 4 字节:  0 - 42亿
+uint256 d; // 32 字节: 0 - 超大数字
+
+// 根据需求选择合适的类型，节省 Gas！`
+    },
+    bytes32_string: {
+        name: "bytes32 vs string",
+        icon: "📝",
+        unlockAt: 3,
+        message: "你了解了 bytes32 和 string 的区别！bytes32 使用固定存储，更节省 Gas，适合存储短文本和哈希值。",
+        code: `// bytes32 vs string 对比
+string public name;           // 动态长度，存储成本高
+bytes32 public proposalHash;  // 固定 32 字节，更省 Gas
+
+// 对于固定长度的短文本，bytes32 更优！`
+    },
+    storage_optimization: {
+        name: "存储优化",
+        icon: "💾",
+        unlockAt: 4,
+        message: "你体验了存储优化！通过使用紧凑数据类型和合理的数据结构，可以大幅降低合约的存储成本。",
+        code: `// 存储优化技巧
+// 1. 使用最小够用的整数类型
+uint8 count;  // 而非 uint256
+
+// 2. 将多个小变量打包到同一槽位
+uint8 a;  // 槽位 1 (前 1 字节)
+uint8 b;  // 槽位 1 (第 2 字节)
+address c;  // 槽位 1 (后 20 字节)
+
+// 3. 使用位运算存储布尔数组
+uint256 flags;  // 可存储 256 个布尔值`
+    },
+    bit_operation: {
+        name: "位运算技巧",
+        icon: "⚡",
+        unlockAt: 5,
+        message: "你了解了位运算的强大之处！通过位运算，1 个 uint256 可以存储 256 个提案的投票状态，节省约 40% Gas！",
+        code: `// 位运算存储投票状态
+uint256 public voterData;  // 选民的投票位图
+
+// 检查是否对提案 n 投票
+uint256 mask = 1 << n;
+bool hasVoted = (voterData & mask) != 0;
+
+// 记录投票
+voterData = voterData | mask;  // 设置对应位为 1
+
+// 1 个 uint256 存储 256 个提案状态！`
+    },
+    mapping_storage: {
+        name: "映射存储",
+        icon: "🗺️",
+        unlockAt: 6,
+        message: "你了解了映射的高效存储！mapping 是 Solidity 中最常用的数据结构，通过哈希表实现快速查找。",
+        code: `// 映射存储投票记录
+mapping(address => uint256) public voterRegistry;
+// 地址 → 投票位图
+
+mapping(uint256 => uint32) public proposalVotes;
+// 提案ID → 投票数
+
+// 映射提供 O(1) 时间复杂度的查找！`
+    },
+    mask_check: {
+        name: "掩码检查",
+        icon: "🎭",
+        unlockAt: 7,
+        message: "你了解了掩码检查的机制！通过与运算，可以快速检查某个位是否已设置，防止重复投票。",
+        code: `// 掩码检查防止重复投票
+uint256 mask = 1 << proposalId;
+uint256 voterData = voterRegistry[msg.sender];
+
+// 检查是否已投票
+if ((voterData & mask) != 0) {
+    revert("Already voted");
+}
+
+// 位运算检查高效且节省 Gas！`
+    },
+    timestamp_block: {
+        name: "时间戳使用",
+        icon: "⏰",
+        unlockAt: 8,
+        message: "你了解了 block.timestamp 的使用！它提供了当前区块的时间戳，常用于实现时间锁和投票截止。",
+        code: `// 使用 block.timestamp 实现投票时间窗口
+uint256 public startTime;
+uint256 public duration;
+
+modifier withinDeadline() {
+    require(
+        block.timestamp >= startTime &&
+        block.timestamp <= startTime + duration,
+        "Voting closed"
+    );
+    _;
+}`
+    },
+    event_logging: {
+        name: "事件日志",
+        icon: "📋",
+        unlockAt: 9,
+        message: "你了解了事件日志的作用！事件记录在链上日志中，可供链下应用索引和监听，是实现前端通知的基础。",
+        code: `// 事件记录提案状态变化
+event ProposalCreated(
+    uint256 indexed id,
+    string name,
+    uint256 endTime
+);
+
+event Voted(
+    address indexed voter,
+    uint256 indexed proposalId
+);
+
+// indexed 参数可被链下高效检索！`
+    }
+};
+
+// ========== Day 15 提示 ==========
+export const getDay15Hint = (conceptKey) => {
+    const hints = {
+        compact_datatype: "📦 太棒了！你了解了紧凑数据类型优化！uint8、uint32 相比 uint256 节省大量存储！👆 点击上方「存储可视化」区域学习更多！",
+        uint8_uint32: "🔢 优秀！你了解了 uint8 和 uint32！它们分别只需 1 字节和 4 字节，远小于 uint256 的 32 字节！👝 创建提案查看 bytes32！",
+        bytes32_string: "📝 很好！你了解了 bytes32 vs string！bytes32 固定 32 字节，比动态 string 更省 Gas！👝 继续创建提案或尝试投票学习位运算！",
+        storage_optimization: "💾 太棒了！你体验了存储优化！通过紧凑数据类型和合理结构，大幅降低存储成本！⚡ 现在尝试投票来学习位运算！",
+        bit_operation: "⚡ 太棒了！你了解了位运算的强大！1 个 uint256 存储 256 个投票状态，节省约 40% Gas！🗺️ 映射高效存储选民数据！⏰ 使用时间戳验证投票窗口！👉 尝试重复投票体验掩码检查！",
+        mapping_storage: "🗺️ 优秀！你了解了映射的高效存储！mapping 通过哈希表实现 O(1) 查找，是 Solidity 最常用的数据结构！👉 继续探索其他功能！",
+        mask_check: "🎭 很好！你体验了掩码检查！通过与运算快速检查位状态，防止重复投票！👉 等待提案结束执行提案学习事件日志！",
+        timestamp_block: "⏰ 不错！你了解了 block.timestamp 的使用！它提供当前区块时间戳，用于实现时间锁和投票截止！👉 尝试重复投票或执行提案！",
+        event_logging: "📋 恭喜！你了解了事件日志！事件记录在链上日志中，可供链下应用索引和监听！🎉 你已掌握 Day 15 所有核心概念！"
+    };
+    return hints[conceptKey] || "📖 点击其他概念标签查看更多详细解释。";
+};
+
+// ========== Day 15 概念解释提示 ==========
+export const getDay15ExplanationHint = (conceptKey) => {
+    const hints = {
+        compact_datatype: "📖 紧凑数据类型是 Solidity Gas 优化的基础。uint8 只占 1 字节（存储范围 0-255），uint32 只占 4 字节（0-42亿），而 uint256 占 32 字节。根据数据范围选择最小够用的类型，可以显著降低存储成本。",
+        uint8_uint32: "📖 uint8、uint16、uint32 等小整数类型相比 uint256 可以节省大量存储空间。当变量值范围有限时，应该优先使用这些紧凑类型。例如：提案数量（uint8）、投票数（uint32）都不需要 uint256 的巨大范围。",
+        bytes32_string: "📖 bytes32 是固定长度的字节数组，始终占用 32 字节。string 是动态长度，存储成本更高且引入额外的 Gas 消耗。对于固定长度的短文本（如提案名称、哈希值），bytes32 是更优的选择。",
+        storage_optimization: "📖 存储优化是智能合约 Gas 优化的核心。技巧包括：1. 使用最小够用的整数类型（uint8 而非 uint256）；2. 将多个小变量打包到同一存储槽位；3. 使用位运算存储布尔数组。这些优化可节省 30-50% 的存储成本。",
+        bit_operation: "📖 位运算利用整数类型的二进制位存储多个布尔值。1 个 uint256 有 256 个位，可以存储 256 个布尔状态（如是否对某提案投票）。相比使用 mapping(uint256 => bool)，位运算节省约 40% 的 Gas。关键操作：左移(1<<n)生成掩码、与(&)检查、或(|)设置。",
+        mapping_storage: "📖 mapping 是 Solidity 的哈希表实现，提供 O(1) 时间复杂度的查找。mapping(address => uint256) 存储地址到数据的映射，mapping(uint256 => uint32) 存储索引到数据的映射。mapping 是状态变量最常用的数据结构，高效且灵活。",
+        mask_check: "📖 掩码（Mask）是位运算的核心概念。掩码是一个二进制数，只有特定位为 1。通过 & 运算检查位：(data & mask) != 0 表示该位已设置。通过 | 运算设置位：data | mask 将对应位设为 1。这种方法快速且节省 Gas。",
+        timestamp_block: "📖 block.timestamp 是当前区块的时间戳（秒级）。它由矿工/验证者提供，可能有少许偏差（几秒到几分钟），但适合大多数场景。常用于实现时间锁、投票截止、合约到期等需要时间判断的功能。",
+        event_logging: "📖 事件（Event）是 Solidity 的日志机制，记录在链上日志中（不占用状态存储）。事件可以有 indexed 参数（最多 3 个），可被链下应用高效检索。事件是实现前端通知、链下索引、历史记录查询的基础，是 DApp 交互的关键。"
+    };
+    return hints[conceptKey] || "📖 点击其他概念标签查看更多详细解释。";
+};
+
+// ========== Day 14 提示 ==========
+export const getDay14Hint = (conceptKey) => {
+    const hints = {
+        interface_definition: "🔌 欢迎来到 Day 14！你了解了接口定义 - 它规定了所有存款盒必须实现的功能。👉 创建任意存款盒来解锁抽象合约！",
+        abstract_contract: "🎭 太棒了！你了解了抽象合约 - 它实现了通用功能但不能直接部署。👉 创建 Basic 存款盒来学习合约继承！",
+        inheritance: "🧬 优秀！你体验了合约继承！BasicDepositBox 继承了 BaseDepositBox 的所有功能。👉 创建 Premium 或 TimeLocked 来学习 override！",
+        override_keyword: "📝 很好！你使用了 override 关键字重写父合约函数。👉 创建 TimeLocked 存款盒来学习 virtual 和修饰器组合！",
+        virtual_function: "🔮 太棒了！你了解了 virtual 关键字 - 它允许子合约重写父函数。👉 在锁定期间尝试取秘密来体验修饰器组合！",
+        super_keyword: "⬆️ 优秀！你使用了 super 调用父合约函数。👉 创建第2个存款盒来体验工厂模式！",
+        modifier_combination: "🔗 太棒了！你体验了修饰器组合 - 需要同时满足 onlyOwner 和 timeUnlocked！👉 创建 Premium 存款盒来学习元数据存储！",
+        factory_pattern: "🏭 优秀！你体验了工厂模式！VaultManager 负责创建和管理所有存款盒。👉 转移所有权并更新记录来完成体验！",
+        metadata_storage: "🏷️ 很好！你使用了元数据功能！Premium 版本可以存储额外信息。👉 查看完整代码来复习所有知识点！",
+        time_lock: "⏰ 太棒了！你创建了时间锁定存款盒！解锁前无法取出秘密。🎉 你已掌握抽象合约、接口与工厂模式！",
+        store_secret: "🔐 太棒了！你成功存入了秘密！Secret 已被安全存储在合约中。👉 尝试取出秘密来体验访问控制！",
+        get_secret: "🔓 不错！你取出了秘密！只有所有者才能访问存储的秘密。👉 尝试设置元数据或创建更多存款盒！",
+        transfer_ownership: "🔑 很好！你转移了存款盒的所有权！新的所有者现在可以管理这个存款盒。👉 切换到新所有者完成转移流程！"
+    };
+    return hints[conceptKey] || "📖 点击其他概念标签查看更多详细解释。";
+};
+
+// ========== Day 14 概念解释提示 ==========
+export const getDay14ExplanationHint = (conceptKey) => {
+    const hints = {
+        interface_definition: "📖 接口（Interface）是 Solidity 中定义合约规范的方式。它只声明函数签名，不包含实现。任何实现该接口的合约都必须提供所有函数的具体实现。接口实现了多态和解耦，让不同的合约可以以统一的方式交互。",
+        abstract_contract: "📖 抽象合约（Abstract Contract）是不能被直接部署的合约，它通常包含一个或多个纯虚函数（没有实现的函数）。抽象合约用于定义子合约必须实现的接口，同时提供一些通用的实现代码，是代码复用的重要机制。",
+        inheritance: "📖 合约继承是 Solidity 的核心特性之一。通过 `contract Child is Parent`，子合约可以继承父合约的所有状态变量和函数。继承实现了代码复用，让开发者可以基于现有合约构建更复杂的功能。",
+        override_keyword: "📖 override 关键字用于显式声明子合约重写了父合约的虚函数。从 Solidity 0.6.0 开始，重写函数必须使用 override 关键字，这提高了代码的可读性和安全性，防止意外重写。",
+        virtual_function: "📖 virtual 关键字标记函数可以被继承合约重写。父合约的函数默认不能被重写，必须显式标记为 virtual。这是 Solidity 的设计选择，防止意外的函数重写导致安全问题。",
+        super_keyword: "📖 super 关键字用于调用父合约的函数。在重写函数时，super 让你可以复用父类的逻辑，然后添加或修改特定行为。这在需要扩展而非完全替换父类功能时非常有用。",
+        modifier_combination: "📖 多个修饰器可以组合使用，函数必须同时满足所有修饰器的条件才能执行。修饰器按声明顺序执行，每个修饰器的 `_` 代表被修饰函数的代码。这是实现复杂权限控制的有效方式。",
+        factory_pattern: "📖 工厂模式是一种创建型设计模式，使用专门的工厂合约来创建和管理其他合约。VaultManager 就是工厂合约，它负责创建存款盒并追踪所有权。工厂模式实现了创建逻辑与使用逻辑的分离。",
+        metadata_storage: "📖 元数据存储展示了继承扩展的实际应用。PremiumDepositBox 在继承 BaseDepositBox 的基础上，添加了 metadata 状态变量和相关函数，实现了功能的扩展，而不影响基础功能。",
+        time_lock: "📖 时间锁定是一种常见的 DeFi 安全机制。TimeLockedDepositBox 使用 block.timestamp 和修饰器实现时间锁，只有在指定时间后才能执行特定操作。这保护了用户资产，防止冲动操作。"
+    };
+    return hints[conceptKey] || "📖 点击其他概念标签查看更多详细解释。";
+};
+
+// ========== Day 16 概念定义 ==========
+export const day16ConceptDefinitions = {
+    struct_definition: {
+        name: "结构体定义",
+        icon: "🏗️",
+        unlockAt: 1,
+        message: "你了解了结构体定义！struct 允许你将多个相关数据组合成一个自定义类型。",
+        code: `// 定义玩家资料结构体
+struct PlayerProfile {
+    string name;    // 玩家名称
+    string avatar;  // 头像标识
+}
+
+// 创建结构体实例
+PlayerProfile memory profile = PlayerProfile("Alice", "avatar1");`
+    },
+    mapping_storage: {
+        name: "映射存储",
+        icon: "🗺️",
+        unlockAt: 2,
+        message: "你了解了映射存储！mapping 是 Solidity 中最常用的键值对存储结构，提供 O(1) 查找效率。",
+        code: `// 映射存储键值对
+mapping(address => PlayerProfile) public profiles;
+mapping(string => address) public plugins;
+
+// 存储和读取
+profiles[msg.sender] = PlayerProfile(name, avatar);
+PlayerProfile memory p = profiles[user];`
+    },
+    plugin_registration: {
+        name: "插件注册",
+        icon: "🔌",
+        unlockAt: 3,
+        message: "你体验了插件注册！通过 mapping 将字符串标识符映射到合约地址，实现动态插件管理。",
+        code: `// 注册插件
+function registerPlugin(string memory key, address pluginAddress) external {
+    plugins[key] = pluginAddress;
+}
+
+// 使用示例
+registerPlugin("weapon", 0x1234...);`
+    },
+    low_level_call: {
+        name: "低级别调用",
+        icon: "⚡",
+        unlockAt: 4,
+        message: "你使用了低级别调用！call 是 EVM 的底层指令，允许动态调用任何合约函数。",
+        code: `// 使用 call 动态调用插件
+(bool success, ) = plugin.call(data);
+require(success, "Plugin execution failed");
+
+// call 可以修改状态，返回 (bool, bytes)`
+    },
+    abi_encoding: {
+        name: "ABI编码",
+        icon: "🔢",
+        unlockAt: 4,
+        message: "你了解了 ABI 编码！Solidity 使用 ABI 标准将函数调用编码为字节码，函数选择器是前4字节。",
+        code: `// ABI 编码函数调用
+bytes memory data = abi.encodeWithSignature(
+    "setWeapon(address,string)", 
+    user, 
+    weapon
+);
+
+// 函数选择器: keccak256("setWeapon(address,string)")[0:4]`
+    },
+    staticcall: {
+        name: "静态调用",
+        icon: "👁️",
+        unlockAt: 5,
+        message: "你使用了静态调用！staticcall 保证被调用的合约不会修改状态，适合查询操作。",
+        code: `// 使用 staticcall 进行只读调用
+(bool success, bytes memory result) = plugin.staticcall(data);
+require(success, "Call failed");
+
+// 解码返回值
+string memory value = abi.decode(result, (string));`
+    },
+    dynamic_delegation: {
+        name: "动态委托",
+        icon: "🔄",
+        unlockAt: 6,
+        message: "你体验了动态委托！一个核心合约可以管理多个插件，实现功能的模块化扩展。",
+        code: `// PluginStore 作为核心，动态委托给不同插件
+pluginStore.runPlugin("weapon", ...);
+pluginStore.runPlugin("achievement", ...);
+
+// 新增插件无需修改核心合约代码`
+    },
+    contract_interop: {
+        name: "合约互操作",
+        icon: "🌐",
+        unlockAt: 7,
+        message: "你掌握了合约互操作！多个合约通过标准接口无缝协作，构建复杂的去中心化应用。",
+        code: `// 插件系统实现合约间的松耦合协作
+// PluginStore (核心) → WeaponPlugin (功能)
+//                    → AchievementPlugin (功能)
+
+// 合约像乐高积木一样组合使用`
+    }
+};
+
+// ========== Day 17 概念定义 ==========
+export const day17ConceptDefinitions = {
+    proxy_pattern: {
+        name: "代理模式",
+        icon: "📦",
+        unlockAt: 1,
+        message: "你了解了代理模式！这是可升级合约的核心架构，将数据存储与逻辑执行分离。",
+        code: `// 代理合约存储数据，逻辑合约执行业务逻辑
+// 用户调用 Proxy → Proxy 通过 delegatecall 调用 Logic
+// 数据存储在 Proxy 中，Logic 只包含代码`
+    },
+    delegatecall: {
+        name: "委托调用",
+        icon: "🔄",
+        unlockAt: 2,
+        message: "你了解了 delegatecall！它在调用者（代理合约）的存储上下文中执行被调用合约（逻辑合约）的代码。",
+        code: `// delegatecall 关键点：
+// 1. 在代理合约的存储上下文中执行
+// 2. msg.sender 保持为原始调用者
+// 3. msg.value 保持不变
+// 4. 代码在逻辑合约，数据在代理合约
+
+assembly {
+    let result := delegatecall(gas(), impl, 0, calldatasize(), 0, 0)
+}`
+    },
+    storage_layout: {
+        name: "存储布局",
+        icon: "🔀",
+        unlockAt: 3,
+        message: "你了解了存储布局！代理合约和逻辑合约必须使用完全相同的存储变量顺序，否则升级后数据会错乱。",
+        code: `// 存储布局必须一致！
+contract SubscriptionStorageLayout {
+    address public logicContract;  // slot 0
+    address public owner;          // slot 1
+    mapping(address => Subscription) public subscriptions;  // slot 2
+    mapping(uint8 => uint256) public planPrices;           // slot 3
+    mapping(uint8 => uint256) public planDuration;         // slot 4
+    uint256[50] private __gap;     // 预留空间，防止未来冲突
+}`
+    },
+    upgrade_mechanism: {
+        name: "升级机制",
+        icon: "🚀",
+        unlockAt: 4,
+        message: "你体验了合约升级！通过更新 logicContract 地址，可以替换业务逻辑而不丢失数据。",
+        code: `// 升级逻辑合约
+function upgradeTo(address _newLogic) external {
+    require(msg.sender == owner, "Not owner");
+    logicContract = _newLogic;  // 更新逻辑合约地址
+}
+
+// 升级后：
+// - 数据保持不变（存储在代理合约）
+// - 逻辑更新为新版本
+// - 用户无感知切换`
+    },
+    logic_contract: {
+        name: "逻辑合约",
+        icon: "⚙️",
+        unlockAt: 4,
+        message: "你了解了逻辑合约！它只包含业务逻辑代码，不存储数据，可以被替换升级。",
+        code: `// 逻辑合约 V1
+contract SubscriptionLogicV1 is SubscriptionStorageLayout {
+    function subscribe(uint8 planId) external payable {
+        // 业务逻辑...
+    }
+}
+
+// 逻辑合约 V2（升级版本）
+contract SubscriptionLogicV2 is SubscriptionStorageLayout {
+    // 新增功能...
+    function pauseSubscription() external { ... }
+}`
+    },
+    fallback_function: {
+        name: "回退函数",
+        icon: "🔙",
+        unlockAt: 5,
+        message: "你了解了 fallback 函数！代理合约使用它捕获所有未匹配的函数调用，并通过 delegatecall 转发给逻辑合约。",
+        code: `// fallback 函数处理所有未匹配的调用
+fallback() external payable {
+    address impl = logicContract;
+    require(impl != address(0), "Not set");
+    
+    assembly {
+        calldatacopy(0, 0, calldatasize())
+        let result := delegatecall(gas(), impl, 0, calldatasize(), 0, 0)
+        returndatacopy(0, 0, returndatasize())
+        switch result
+        case 0 { revert(0, returndatasize()) }
+        default { return(0, returndatasize()) }
+    }
+}`
+    },
+    data_persistence: {
+        name: "数据持久化",
+        icon: "💾",
+        unlockAt: 6,
+        message: "你验证了数据持久化！升级合约后，之前创建的计划和订阅数据仍然保持不变。",
+        code: `// 升级前：
+// - 用户订阅了计划 1
+// - 过期时间为 2024-12-31
+
+// 升级后：
+// - 订阅数据仍然存在
+// - 过期时间不变
+// - 可以查询到之前的订阅记录`
+    },
+    version_control: {
+        name: "版本控制",
+        icon: "📊",
+        unlockAt: 7,
+        message: "你体验了版本控制！V2 新增了暂停/恢复功能，展示了如何在升级中添加新特性。",
+        code: `// V1 功能：
+// - createPlan
+// - subscribe
+// - isSubscribed
+
+// V2 新增：
+// - pauseSubscription  ⭐ 新功能
+// - resumeSubscription ⭐ 新功能
+
+// 升级后，V1 和 V2 的数据格式兼容`
+    }
+};
+
+// ========== Day 16 提示 ==========
+export const getDay16Hint = (conceptKey) => {
+    const hints = {
+        struct_definition: "🏗️ 你了解了结构体定义！PlayerProfile 将 name 和 avatar 组合在一起。👉 设置玩家资料来解锁映射存储！",
+        mapping_storage: "🗺️ 你的资料已保存到 mapping！通过键值对高效存储。👉 注册 weapon 插件来学习插件系统！",
+        plugin_registration: "🔌 插件注册成功！地址已存入 plugins[key]。👉 点击「调用」执行插件函数！",
+        low_level_call: "⚡ 低级别调用成功！使用了 EVM 的 call 指令。👉 查看 ABI 编码可视化！",
+        abi_encoding: "🔢 ABI 编码完成！函数选择器是 keccak256 哈希的前4字节。👉 切换 staticcall 模式查询数据！",
+        staticcall: "👁️ 静态调用成功！不消耗 Gas 的只读操作。👉 尝试切换到 achievement 插件！",
+        dynamic_delegation: "🔄 动态委托系统运行中！一个核心管理多个插件。👉 在不同插件间切换体验互操作！",
+        contract_interop: "🌐 合约互操作掌握！多个合约无缝协作。🎉 你已掌握 Day 16 所有核心概念！"
+    };
+    return hints[conceptKey] || "📖 点击其他概念标签查看更多详细解释。";
+};
+
+// ========== Day 16 概念解释提示 ==========
+export const getDay16ExplanationHint = (conceptKey) => {
+    const hints = {
+        struct_definition: "📖 结构体(struct)允许你将多个相关的变量组合成一个自定义类型。PlayerProfile 包含 name 和 avatar 两个字段，可以像单个变量一样传递和存储。结构体是组织复杂数据的基础。",
+        mapping_storage: "📖 映射(mapping)是哈希表结构，提供 O(1) 的读写效率。profiles 用 address 作为键存储玩家资料，plugins 用 string 作为键存储插件地址。mapping 是 Solidity 最常用的状态变量类型。",
+        plugin_registration: "📖 插件注册将字符串标识符映射到合约地址，实现动态插件管理。这种设计模式被称为注册表模式(Registry Pattern)，允许运行时添加新功能而无需修改核心合约代码。",
+        low_level_call: "📖 call 是 EVM 的低级别调用指令，允许你动态调用任何函数。它返回 (bool, bytes) 元组表示成功状态和返回值。call 非常灵活但不如普通调用安全，需要仔细检查返回值。",
+        abi_encoding: "📖 ABI(Application Binary Interface)编码将函数签名和参数转换为字节码。函数选择器是函数签名的 keccak256 哈希的前4字节。abi.encodeWithSignature 自动处理编码过程。",
+        staticcall: "📖 staticcall 与 call 类似，但被调用的合约不能修改状态(发送ETH、写存储等)。它适合查询操作，更安全且通常不消耗 Gas。staticcall 是 view 函数的底层实现。",
+        dynamic_delegation: "📖 动态委托允许核心合约将操作转发给不同的插件合约，实现功能的模块化扩展。这种架构让系统可以灵活添加新功能，无需修改核心代码，是插件系统的基础。",
+        contract_interop: "📖 合约互操作是 DeFi 和 DApp 的基础。通过标准接口和动态调用，不同合约可以像乐高积木一样组合使用。PluginStore 展示了如何通过统一接口协调多个独立合约。"
+    };
+    return hints[conceptKey] || "📖 点击其他概念标签查看更多详细解释。";
+};
+
+// ========== Day 17 提示 ==========
+export const getDay17Hint = (conceptKey) => {
+    const hints = {
+        proxy_pattern: "📦 你了解了代理模式！这是可升级合约的核心架构。👉 点击 delegatecall 说明来学习委托调用！",
+        delegatecall: "🔄 你了解了 delegatecall！它在代理合约的存储上下文中执行逻辑合约的代码。👉 点击存储布局说明了解变量顺序的重要性！",
+        storage_layout: "🔀 你了解了存储布局！代理合约和逻辑合约必须使用相同的存储变量顺序。👉 切换到 Owner 身份，创建第一个订阅计划！",
+        upgrade_mechanism: "🚀 你体验了合约升级！通过更新 logicContract 地址，可以替换业务逻辑而不丢失数据。👉 切换到 User 身份，执行订阅操作！",
+        logic_contract: "⚙️ 你了解了逻辑合约！它只包含业务逻辑代码，不存储数据。👉 订阅后查看 fallback 如何工作！",
+        fallback_function: "🔙 你了解了 fallback 函数！代理合约使用它捕获所有未匹配的函数调用。👉 升级合约后查看数据是否仍然存在！",
+        data_persistence: "💾 你验证了数据持久化！升级合约后，之前的数据仍然保持不变。👉 使用 V2 新功能（暂停/恢复）来对比版本差异！",
+        version_control: "📊 你体验了版本控制！V2 新增了暂停/恢复功能。🎉 你已掌握 Day 17 所有核心概念！"
+    };
+    return hints[conceptKey] || "📖 点击其他概念标签查看更多详细解释。";
+};
+
+// ========== Day 17 解释提示 ==========
+export const getDay17ExplanationHint = (conceptKey) => {
+    const hints = {
+        proxy_pattern: "📖 代理模式(Proxy Pattern)是可升级合约的核心架构。代理合约负责存储所有数据和 ETH，逻辑合约只包含业务代码。用户始终与代理合约交互，代理通过 delegatecall 将调用转发给当前逻辑合约。",
+        delegatecall: "📖 delegatecall 是 EVM 的特殊调用方式，它在调用者（代理合约）的存储上下文中执行被调用合约（逻辑合约）的代码。这意味着逻辑合约可以读写代理合约的存储，但代码来自逻辑合约。msg.sender 和 msg.value 保持不变。",
+        storage_layout: "📖 存储布局一致性是可升级合约的关键。代理合约和逻辑合约必须继承相同的存储布局基础合约（如 SubscriptionStorageLayout），确保变量顺序完全一致。如果顺序不同，升级后数据会错位，导致严重错误。",
+        upgrade_mechanism: "📖 升级机制通过更新代理合约中的 logicContract 地址实现。upgradeTo() 函数只有 owner 可以调用，更新后所有新调用都会使用新逻辑。旧数据保持不变，因为数据存储在代理合约中，不在逻辑合约里。",
+        logic_contract: "📖 逻辑合约(Logic Contract)只包含业务逻辑代码，不存储任何状态数据。它可以被替换升级而不影响数据。V1 和 V2 都是逻辑合约，它们继承相同的存储布局，但实现不同的功能。",
+        fallback_function: "📖 fallback 函数是代理合约的核心。当用户调用代理合约中不存在的函数时，fallback 会被触发。它使用 delegatecall 将调用转发给逻辑合约，并返回执行结果。这是实现透明代理的关键。",
+        data_persistence: "📖 数据持久化是可升级合约的重要特性。由于所有数据都存储在代理合约中，升级逻辑合约不会影响已有数据。用户升级前创建的订阅、计划等数据在升级后仍然可以正常访问和使用。",
+        version_control: "📖 版本控制展示了如何在升级中添加新功能。V2 在 V1 的基础上新增了 pauseSubscription 和 resumeSubscription 功能，但保持数据格式兼容。这展示了可升级合约的灵活性和扩展性。"
     };
     return hints[conceptKey] || "📖 点击其他概念标签查看更多详细解释。";
 };

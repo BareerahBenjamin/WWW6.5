@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 // AggregatorV3Interface 是 Chainlink 标准预言机接口
-import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 // 模拟预言机
